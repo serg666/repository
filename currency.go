@@ -161,50 +161,27 @@ func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (e
 }
 
 func NewOrderedMapCurrencyStore() CurrencyRepository {
-	var cr CurrencyRepository
-
-	cs := OrderedMapCurrencyStore{}
-	cs.currencies = orderedmap.New()
-	cs.nextId = 0
-
-	cr = &cs
-
-	return cr
+	return &OrderedMapCurrencyStore{
+		currencies: orderedmap.New(),
+		nextId:     0,
+	}
 }
 
 func NewCurrencySpecificationByID(id int) CurrencySpecification {
-	var cs CurrencySpecification
-
-	currencySpecification := CurrencySpecificationByID{id: id}
-
-	cs = &currencySpecification
-
-	return cs
+	return &CurrencySpecificationByID{id: id}
 }
 
 func NewCurrencySpecificationByNumericCode(numericcode int) CurrencySpecification {
-	var cs CurrencySpecification
-
-	currencySpecification := CurrencySpecificationByNumericCode{
+	return &CurrencySpecificationByNumericCode{
 		numericcode: numericcode,
 	}
-
-	cs = &currencySpecification
-
-	return cs
 }
 
 func NewCurrencySpecificationWithLimitAndOffset(limit int, offset int) CurrencySpecification {
-	var cs CurrencySpecification
-
-	currencySpecification := CurrencySpecificationWithLimitAndOffset{
+	return &CurrencySpecificationWithLimitAndOffset{
 		limit:  limit,
 		offset: offset,
 	}
-
-	cs = &currencySpecification
-
-	return cs
 }
 
 type PGPoolCurrencyStore struct {

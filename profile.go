@@ -129,38 +129,21 @@ func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (err
 }
 
 func NewOrderedMapProfileStore() ProfileRepository {
-	var pr ProfileRepository
-
-	ps := OrderedMapProfileStore{}
-	ps.profiles = orderedmap.New()
-	ps.nextId = 0
-
-	pr = &ps
-
-	return pr
+	return &OrderedMapProfileStore{
+		profiles: orderedmap.New(),
+		nextId:   0,
+	}
 }
 
 func NewProfileSpecificationByID(id int) ProfileSpecification {
-	var ps ProfileSpecification
-
-	profileSpecification := ProfileSpecificationByID{
+	return &ProfileSpecificationByID{
 		id: id,
 	}
-
-	ps = &profileSpecification
-
-	return ps
 }
 
 func NewProfileSpecificationWithLimitAndOffset(limit int, offset int) ProfileSpecification {
-	var ps ProfileSpecification
-
-	profileSpecification := ProfileSpecificationWithLimitAndOffset{
+	return &ProfileSpecificationWithLimitAndOffset{
 		limit:  limit,
 		offset: offset,
 	}
-
-	ps = &profileSpecification
-
-	return ps
 }
