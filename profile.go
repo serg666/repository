@@ -19,9 +19,9 @@ type ProfileSpecification interface {
 
 type ProfileRepository interface {
 	Add(profile *Profile) error
-	Delete(profile *Profile) error
-	Update(profile *Profile) error
-	Query(specification ProfileSpecification) (int, []Profile)
+	Delete(profile *Profile) (error, bool)
+	Update(profile *Profile) (error, bool)
+	Query(specification ProfileSpecification) (error, int, []Profile)
 }
 
 type ProfileSpecificationWithLimitAndOffset struct {
@@ -59,13 +59,13 @@ func (ps *OrderedMapProfileStore) Add(profile *Profile) error {
 	return nil
 }
 
-func (ps *OrderedMapProfileStore) Delete(profile *Profile) error {
+func (ps *OrderedMapProfileStore) Delete(profile *Profile) (error, bool) {
 	ps.Lock()
 	defer ps.Unlock()
 
 	value, present := ps.profiles.Delete(profile.Id)
 	if !present {
-		return fmt.Errorf("Profile with id=%v not found", profile.Id)
+		return fmt.Errorf("profile with id=%v not found", profile.Id), true
 	}
 
 	deleted := value.(Profile)
@@ -73,16 +73,16 @@ func (ps *OrderedMapProfileStore) Delete(profile *Profile) error {
 	profile.Description = deleted.Description
 	profile.Currency = deleted.Currency
 
-	return nil
+	return nil, false
 }
 
-func (ps *OrderedMapProfileStore) Update(profile *Profile) error {
+func (ps *OrderedMapProfileStore) Update(profile *Profile) (error, bool) {
 	ps.Lock()
 	defer ps.Unlock()
 
 	value, present := ps.profiles.Get(profile.Id)
 	if !present {
-		return fmt.Errorf("Profile with id=%v not found", profile.Id)
+		return fmt.Errorf("profile with id=%v not found", profile.Id), true
 	}
 
 	old := value.(Profile)
@@ -107,10 +107,10 @@ func (ps *OrderedMapProfileStore) Update(profile *Profile) error {
 
 	ps.profiles.Set(old.Id, old)
 
-	return nil
+	return nil, false
 }
 
-func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (int, []Profile) {
+func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (error, int, []Profile) {
 	ps.Lock()
 	defer ps.Unlock()
 
@@ -125,7 +125,7 @@ func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (int
 		c++
 	}
 
-	return ps.profiles.Len(), l
+	return nil, ps.profiles.Len(), l
 }
 
 func NewOrderedMapProfileStore() ProfileRepository {

@@ -3,7 +3,10 @@ package repository
 import (
 	"fmt"
 	"sync"
+	"context"
 	"github.com/wk8/go-ordered-map"
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Currency struct {
@@ -16,13 +19,14 @@ type Currency struct {
 
 type CurrencySpecification interface {
 	Specified(currency *Currency, i int) bool
+	ToSqlClauses() string
 }
 
 type CurrencyRepository interface {
 	Add(currency *Currency) error
-	Delete(currency *Currency) error
-	Update(currency *Currency) error
-	Query(specification CurrencySpecification) (int, []Currency)
+	Delete(currency *Currency) (error, bool)
+	Update(currency *Currency) (error, bool)
+	Query(specification CurrencySpecification) (error, int, []Currency)
 }
 
 type CurrencySpecificationWithLimitAndOffset struct {
@@ -34,6 +38,10 @@ func (cswlao *CurrencySpecificationWithLimitAndOffset) Specified(currency *Curre
 	return i >= cswlao.offset && i < cswlao.offset + cswlao.limit
 }
 
+func (cswlao *CurrencySpecificationWithLimitAndOffset) ToSqlClauses() string {
+	return fmt.Sprintf("limit %d offset %d", cswlao.limit, cswlao.offset)
+}
+
 type CurrencySpecificationByID struct {
 	id int
 }
@@ -42,12 +50,20 @@ func (csbyid *CurrencySpecificationByID) Specified(currency *Currency, i int) bo
 	return csbyid.id == currency.Id
 }
 
+func (csbyid *CurrencySpecificationByID) ToSqlClauses() string {
+	return fmt.Sprintf("where id=%d", csbyid.id)
+}
+
 type CurrencySpecificationByNumericCode struct {
 	numericcode int
 }
 
 func (csbync *CurrencySpecificationByNumericCode) Specified(currency *Currency, i int) bool {
 	return csbync.numericcode == *currency.NumericCode
+}
+
+func (csbync *CurrencySpecificationByNumericCode) ToSqlClauses() string {
+	return fmt.Sprintf("where numeric_code=%d", csbync.numericcode)
 }
 
 type OrderedMapCurrencyStore struct {
@@ -68,13 +84,13 @@ func (cs *OrderedMapCurrencyStore) Add(currency *Currency) error {
 	return nil
 }
 
-func (cs *OrderedMapCurrencyStore) Delete(currency *Currency) error {
+func (cs *OrderedMapCurrencyStore) Delete(currency *Currency) (error, bool) {
 	cs.Lock()
 	defer cs.Unlock()
 
 	value, present := cs.currencies.Delete(currency.Id)
 	if !present {
-		return fmt.Errorf("Currency with id=%v not found", currency.Id)
+		return fmt.Errorf("currency with id=%v not found", currency.Id), true
 	}
 
 	deleted := value.(Currency)
@@ -83,16 +99,16 @@ func (cs *OrderedMapCurrencyStore) Delete(currency *Currency) error {
 	currency.CharCode = deleted.CharCode
 	currency.Exponent = deleted.Exponent
 
-	return nil
+	return nil, false
 }
 
-func (cs *OrderedMapCurrencyStore) Update(currency *Currency) error {
+func (cs *OrderedMapCurrencyStore) Update(currency *Currency) (error, bool) {
 	cs.Lock()
 	defer cs.Unlock()
 
 	value, present := cs.currencies.Get(currency.Id)
 	if !present {
-		return fmt.Errorf("Currency with id=%v not found", currency.Id)
+		return fmt.Errorf("currency with id=%v not found", currency.Id), true
 	}
 
 	old := value.(Currency)
@@ -123,10 +139,10 @@ func (cs *OrderedMapCurrencyStore) Update(currency *Currency) error {
 
 	cs.currencies.Set(old.Id, old)
 
-	return nil
+	return nil, false
 }
 
-func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (int, []Currency) {
+func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (error, int, []Currency) {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -141,7 +157,7 @@ func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (i
 		c++
 	}
 
-	return cs.currencies.Len(), l
+	return nil, cs.currencies.Len(), l
 }
 
 func NewOrderedMapCurrencyStore() CurrencyRepository {
@@ -189,4 +205,118 @@ func NewCurrencySpecificationWithLimitAndOffset(limit int, offset int) CurrencyS
 	cs = &currencySpecification
 
 	return cs
+}
+
+type PGPoolCurrencyStore struct {
+	pool *pgxpool.Pool
+}
+
+func (cs *PGPoolCurrencyStore) Add(currency *Currency) error {
+	return cs.pool.QueryRow(
+		context.Background(),
+		"insert into currencies (numeric_code, name, char_code, exponent) values ($1, $2, $3, $4) returning id",
+		currency.NumericCode,
+		currency.Name,
+		currency.CharCode,
+		currency.Exponent,
+	).Scan(&currency.Id)
+}
+
+func (cs *PGPoolCurrencyStore) Delete(currency *Currency) (error, bool) {
+	err := cs.pool.QueryRow(
+		context.Background(),
+		"delete from currencies where id=$1 returning numeric_code, name, char_code, exponent",
+		currency.Id,
+	).Scan(
+		&currency.NumericCode,
+		&currency.Name,
+		&currency.CharCode,
+		&currency.Exponent,
+	)
+
+	return err, err == pgx.ErrNoRows
+}
+
+func (cs *PGPoolCurrencyStore) Query(specification CurrencySpecification) (error, int, []Currency) {
+	var l []Currency
+	var c int = 0
+
+	conn, err := cs.pool.Acquire(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("failed to acquire connection from the pool: %v", err), c, l
+	}
+	defer conn.Release()
+
+	err = conn.QueryRow(
+		context.Background(),
+		"select count(*) from currencies",
+	).Scan(&c)
+
+	if err != nil {
+		return err, c, l
+	}
+
+	rows, err := conn.Query(
+		context.Background(), fmt.Sprintf(
+			"select id, numeric_code, name, char_code, exponent from currencies %s",
+			specification.ToSqlClauses(),
+		),
+	)
+
+	if err != nil {
+		return err, c, l
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var currency Currency
+
+		if err = rows.Scan(
+			&currency.Id,
+			&currency.NumericCode,
+			&currency.Name,
+			&currency.CharCode,
+			&currency.Exponent,
+		); err != nil {
+			return fmt.Errorf("failed to get currency row: %v", err), c, l
+		}
+		l = append(l, currency)
+	}
+
+	if err = rows.Err(); err != nil {
+		return fmt.Errorf("failed to iterating over rows of currencies: %v", err), c, l
+	}
+
+	return nil, c, l
+}
+
+func (cs *PGPoolCurrencyStore) Update(currency *Currency) (error, bool) {
+	err := cs.pool.QueryRow(
+		context.Background(),
+		`update currencies set
+			numeric_code=COALESCE($2, numeric_code),
+			name=COALESCE($3, name),
+			char_code=COALESCE($4, char_code),
+			exponent=COALESCE($5, exponent)
+		where id=$1 returning numeric_code, name, char_code, exponent`,
+		currency.Id,
+		currency.NumericCode,
+		currency.Name,
+		currency.CharCode,
+		currency.Exponent,
+	).Scan(
+		&currency.NumericCode,
+		&currency.Name,
+		&currency.CharCode,
+		&currency.Exponent,
+	)
+
+	return err, err == pgx.ErrNoRows
+}
+
+func NewPGPoolCurrencyStore(pool *pgxpool.Pool) CurrencyRepository {
+	return &PGPoolCurrencyStore{
+		pool: pool,
+	}
 }
