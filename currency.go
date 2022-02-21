@@ -23,10 +23,10 @@ type CurrencySpecification interface {
 }
 
 type CurrencyRepository interface {
-	Add(currency *Currency) error
-	Delete(currency *Currency) (error, bool)
-	Update(currency *Currency) (error, bool)
-	Query(specification CurrencySpecification) (error, int, []Currency)
+	Add(ctx interface{}, currency *Currency) error
+	Delete(ctx interface{}, currency *Currency) (error, bool)
+	Update(ctx interface{}, currency *Currency) (error, bool)
+	Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency)
 }
 
 type CurrencySpecificationWithLimitAndOffset struct {
@@ -71,9 +71,10 @@ type OrderedMapCurrencyStore struct {
 
 	currencies *orderedmap.OrderedMap
 	nextId     int
+	logger     LoggerFunc
 }
 
-func (cs *OrderedMapCurrencyStore) Add(currency *Currency) error {
+func (cs *OrderedMapCurrencyStore) Add(ctx interface{}, currency *Currency) error {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -84,7 +85,7 @@ func (cs *OrderedMapCurrencyStore) Add(currency *Currency) error {
 	return nil
 }
 
-func (cs *OrderedMapCurrencyStore) Delete(currency *Currency) (error, bool) {
+func (cs *OrderedMapCurrencyStore) Delete(ctx interface{}, currency *Currency) (error, bool) {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -102,7 +103,7 @@ func (cs *OrderedMapCurrencyStore) Delete(currency *Currency) (error, bool) {
 	return nil, false
 }
 
-func (cs *OrderedMapCurrencyStore) Update(currency *Currency) (error, bool) {
+func (cs *OrderedMapCurrencyStore) Update(ctx interface{}, currency *Currency) (error, bool) {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -142,7 +143,7 @@ func (cs *OrderedMapCurrencyStore) Update(currency *Currency) (error, bool) {
 	return nil, false
 }
 
-func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (error, int, []Currency) {
+func (cs *OrderedMapCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency) {
 	cs.Lock()
 	defer cs.Unlock()
 
@@ -160,10 +161,11 @@ func (cs *OrderedMapCurrencyStore) Query(specification CurrencySpecification) (e
 	return nil, cs.currencies.Len(), l
 }
 
-func NewOrderedMapCurrencyStore() CurrencyRepository {
+func NewOrderedMapCurrencyStore(logger LoggerFunc) CurrencyRepository {
 	return &OrderedMapCurrencyStore{
 		currencies: orderedmap.New(),
 		nextId:     0,
+		logger:     logger,
 	}
 }
 
@@ -185,10 +187,11 @@ func NewCurrencySpecificationWithLimitAndOffset(limit int, offset int) CurrencyS
 }
 
 type PGPoolCurrencyStore struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger LoggerFunc
 }
 
-func (cs *PGPoolCurrencyStore) Add(currency *Currency) error {
+func (cs *PGPoolCurrencyStore) Add(ctx interface{}, currency *Currency) error {
 	return cs.pool.QueryRow(
 		context.Background(),
 		"insert into currencies (numeric_code, name, char_code, exponent) values ($1, $2, $3, $4) returning id",
@@ -199,7 +202,7 @@ func (cs *PGPoolCurrencyStore) Add(currency *Currency) error {
 	).Scan(&currency.Id)
 }
 
-func (cs *PGPoolCurrencyStore) Delete(currency *Currency) (error, bool) {
+func (cs *PGPoolCurrencyStore) Delete(ctx interface{}, currency *Currency) (error, bool) {
 	err := cs.pool.QueryRow(
 		context.Background(),
 		"delete from currencies where id=$1 returning numeric_code, name, char_code, exponent",
@@ -214,7 +217,7 @@ func (cs *PGPoolCurrencyStore) Delete(currency *Currency) (error, bool) {
 	return err, err == pgx.ErrNoRows
 }
 
-func (cs *PGPoolCurrencyStore) Query(specification CurrencySpecification) (error, int, []Currency) {
+func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency) {
 	var l []Currency
 	var c int = 0
 
@@ -268,7 +271,7 @@ func (cs *PGPoolCurrencyStore) Query(specification CurrencySpecification) (error
 	return nil, c, l
 }
 
-func (cs *PGPoolCurrencyStore) Update(currency *Currency) (error, bool) {
+func (cs *PGPoolCurrencyStore) Update(ctx interface{}, currency *Currency) (error, bool) {
 	err := cs.pool.QueryRow(
 		context.Background(),
 		`update currencies set
@@ -292,8 +295,9 @@ func (cs *PGPoolCurrencyStore) Update(currency *Currency) (error, bool) {
 	return err, err == pgx.ErrNoRows
 }
 
-func NewPGPoolCurrencyStore(pool *pgxpool.Pool) CurrencyRepository {
+func NewPGPoolCurrencyStore(pool *pgxpool.Pool, logger LoggerFunc) CurrencyRepository {
 	return &PGPoolCurrencyStore{
-		pool: pool,
+		pool:   pool,
+		logger: logger,
 	}
 }

@@ -1,10 +1,13 @@
 package repository
 
 import (
+	"log"
 	"fmt"
 	"context"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
+
+type LoggerFunc func(interface{}) *log.Logger
 
 func MakePgPoolFromDSN(dsn string) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(dsn)

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"log"
 	"fmt"
 	"sync"
 	"github.com/wk8/go-ordered-map"
@@ -19,10 +18,10 @@ type ProfileSpecification interface {
 }
 
 type ProfileRepository interface {
-	Add(profile *Profile) error
-	Delete(profile *Profile) (error, bool)
-	Update(profile *Profile) (error, bool)
-	Query(specification ProfileSpecification) (error, int, []Profile)
+	Add(ctx interface{}, profile *Profile) error
+	Delete(ctx interface{}, profile *Profile) (error, bool)
+	Update(ctx interface{}, profile *Profile) (error, bool)
+	Query(ctx interface{}, specification ProfileSpecification) (error, int, []Profile)
 }
 
 type ProfileSpecificationWithLimitAndOffset struct {
@@ -47,9 +46,10 @@ type OrderedMapProfileStore struct {
 
 	profiles *orderedmap.OrderedMap
 	nextId   int
+	logger   LoggerFunc
 }
 
-func (ps *OrderedMapProfileStore) Add(profile *Profile) error {
+func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
 	ps.Lock()
 	defer ps.Unlock()
 
@@ -60,7 +60,7 @@ func (ps *OrderedMapProfileStore) Add(profile *Profile) error {
 	return nil
 }
 
-func (ps *OrderedMapProfileStore) Delete(profile *Profile) (error, bool) {
+func (ps *OrderedMapProfileStore) Delete(ctx interface{}, profile *Profile) (error, bool) {
 	ps.Lock()
 	defer ps.Unlock()
 
@@ -77,7 +77,7 @@ func (ps *OrderedMapProfileStore) Delete(profile *Profile) (error, bool) {
 	return nil, false
 }
 
-func (ps *OrderedMapProfileStore) Update(profile *Profile) (error, bool) {
+func (ps *OrderedMapProfileStore) Update(ctx interface{}, profile *Profile) (error, bool) {
 	ps.Lock()
 	defer ps.Unlock()
 
@@ -111,14 +111,14 @@ func (ps *OrderedMapProfileStore) Update(profile *Profile) (error, bool) {
 	return nil, false
 }
 
-func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (error, int, []Profile) {
+func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSpecification) (error, int, []Profile) {
 	ps.Lock()
 	defer ps.Unlock()
 
 	var l []Profile
 	var c int = 0
 
-	log.Print("some message")
+	ps.logger(ctx).Print("some message")
 	for el := ps.profiles.Oldest(); el != nil; el = el.Next() {
 		profile := el.Value.(Profile)
 		if specification.Specified(&profile, c) {
@@ -130,10 +130,11 @@ func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (err
 	return nil, ps.profiles.Len(), l
 }
 
-func NewOrderedMapProfileStore() ProfileRepository {
+func NewOrderedMapProfileStore(logger LoggerFunc) ProfileRepository {
 	return &OrderedMapProfileStore{
 		profiles: orderedmap.New(),
 		nextId:   0,
+		logger:   logger,
 	}
 }
 
