@@ -1,13 +1,13 @@
 package repository
 
 import (
-	"log"
 	"fmt"
 	"context"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 )
 
-type LoggerFunc func(interface{}) *log.Logger
+type LoggerFunc func(interface{}) logrus.FieldLogger
 
 func MakePgPoolFromDSN(dsn string) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(dsn)
