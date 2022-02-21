@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"log"
 	"fmt"
 	"sync"
 	"github.com/wk8/go-ordered-map"
@@ -117,6 +118,7 @@ func (ps *OrderedMapProfileStore) Query(specification ProfileSpecification) (err
 	var l []Profile
 	var c int = 0
 
+	log.Print("some message")
 	for el := ps.profiles.Oldest(); el != nil; el = el.Next() {
 		profile := el.Value.(Profile)
 		if specification.Specified(&profile, c) {
