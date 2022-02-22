@@ -161,9 +161,9 @@ func (cs *OrderedMapCurrencyStore) Query(ctx interface{}, specification Currency
 	return nil, cs.currencies.Len(), l
 }
 
-func NewOrderedMapCurrencyStore(logger LoggerFunc) CurrencyRepository {
+func NewOrderedMapCurrencyStore(currencies *orderedmap.OrderedMap, logger LoggerFunc) CurrencyRepository {
 	return &OrderedMapCurrencyStore{
-		currencies: orderedmap.New(),
+		currencies: currencies,
 		nextId:     0,
 		logger:     logger,
 	}

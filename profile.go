@@ -130,9 +130,9 @@ func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSp
 	return nil, ps.profiles.Len(), l
 }
 
-func NewOrderedMapProfileStore(logger LoggerFunc) ProfileRepository {
+func NewOrderedMapProfileStore(profiles *orderedmap.OrderedMap, logger LoggerFunc) ProfileRepository {
 	return &OrderedMapProfileStore{
-		profiles: orderedmap.New(),
+		profiles: profiles,
 		nextId:   0,
 		logger:   logger,
 	}
