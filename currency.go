@@ -26,7 +26,7 @@ type CurrencyRepository interface {
 	Add(ctx interface{}, currency *Currency) error
 	Delete(ctx interface{}, currency *Currency) (error, bool)
 	Update(ctx interface{}, currency *Currency) (error, bool)
-	Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency)
+	Query(ctx interface{}, specification CurrencySpecification) (error, int, []*Currency)
 }
 
 type CurrencySpecificationWithLimitAndOffset struct {
@@ -143,17 +143,17 @@ func (cs *OrderedMapCurrencyStore) Update(ctx interface{}, currency *Currency) (
 	return nil, false
 }
 
-func (cs *OrderedMapCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency) {
+func (cs *OrderedMapCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []*Currency) {
 	cs.Lock()
 	defer cs.Unlock()
 
-	var l []Currency
+	var l []*Currency
 	var c int = 0
 
 	for el := cs.currencies.Oldest(); el != nil; el = el.Next() {
 		currency := el.Value.(Currency)
 		if specification.Specified(&currency, c) {
-			l = append(l, currency)
+			l = append(l, &currency)
 		}
 		c++
 	}
@@ -217,8 +217,8 @@ func (cs *PGPoolCurrencyStore) Delete(ctx interface{}, currency *Currency) (erro
 	return err, err == pgx.ErrNoRows
 }
 
-func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []Currency) {
-	var l []Currency
+func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpecification) (error, int, []*Currency) {
+	var l []*Currency
 	var c int = 0
 
 	conn, err := cs.pool.Acquire(context.Background())
@@ -234,7 +234,7 @@ func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpec
 	).Scan(&c)
 
 	if err != nil {
-		return err, c, l
+		return fmt.Errorf("failed to get currencies cnt: %v", err), c, l
 	}
 
 	rows, err := conn.Query(
@@ -245,7 +245,7 @@ func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpec
 	)
 
 	if err != nil {
-		return err, c, l
+		return fmt.Errorf("failed to query currencies rows: %v", err), c, l
 	}
 	defer rows.Close()
 
@@ -261,7 +261,7 @@ func (cs *PGPoolCurrencyStore) Query(ctx interface{}, specification CurrencySpec
 		); err != nil {
 			return fmt.Errorf("failed to get currency row: %v", err), c, l
 		}
-		l = append(l, currency)
+		l = append(l, &currency)
 	}
 
 	if err = rows.Err(); err != nil {

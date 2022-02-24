@@ -21,7 +21,7 @@ type ChannelRepository interface {
 	Add(ctx interface{}, channel *Channel) error
 	Delete(ctx interface{}, channel *Channel) (error, bool)
 	Update(ctx interface{}, channel *Channel) (error, bool)
-	Query(ctx interface{}, specification ChannelSpecification) (error, int, []Channel)
+	Query(ctx interface{}, specification ChannelSpecification) (error, int, []*Channel)
 }
 
 type ChannelWithoutSpecification struct {}
@@ -106,8 +106,8 @@ func (cs *PGPoolChannelStore) Delete(ctx interface{}, channel *Channel) (error, 
 	return err, err == pgx.ErrNoRows
 }
 
-func (cs *PGPoolChannelStore) Query(ctx interface{}, specification ChannelSpecification) (error, int, []Channel) {
-	var l []Channel
+func (cs *PGPoolChannelStore) Query(ctx interface{}, specification ChannelSpecification) (error, int, []*Channel) {
+	var l []*Channel
 	var c int = 0
 
 	conn, err := cs.pool.Acquire(context.Background())
@@ -148,7 +148,7 @@ func (cs *PGPoolChannelStore) Query(ctx interface{}, specification ChannelSpecif
 		); err != nil {
 			return fmt.Errorf("failed to get channel row: %v", err), c, l
 		}
-		l = append(l, channel)
+		l = append(l, &channel)
 	}
 
 	if err = rows.Err(); err != nil {

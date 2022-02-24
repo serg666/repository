@@ -21,7 +21,7 @@ type ProfileRepository interface {
 	Add(ctx interface{}, profile *Profile) error
 	Delete(ctx interface{}, profile *Profile) (error, bool)
 	Update(ctx interface{}, profile *Profile) (error, bool)
-	Query(ctx interface{}, specification ProfileSpecification) (error, int, []Profile)
+	Query(ctx interface{}, specification ProfileSpecification) (error, int, []*Profile)
 }
 
 type ProfileSpecificationWithLimitAndOffset struct {
@@ -111,18 +111,18 @@ func (ps *OrderedMapProfileStore) Update(ctx interface{}, profile *Profile) (err
 	return nil, false
 }
 
-func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSpecification) (error, int, []Profile) {
+func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSpecification) (error, int, []*Profile) {
 	ps.Lock()
 	defer ps.Unlock()
 
-	var l []Profile
+	var l []*Profile
 	var c int = 0
 
 	ps.logger(ctx).Print("some message")
 	for el := ps.profiles.Oldest(); el != nil; el = el.Next() {
 		profile := el.Value.(Profile)
 		if specification.Specified(&profile, c) {
-			l = append(l, profile)
+			l = append(l, &profile)
 		}
 		c++
 	}
