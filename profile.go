@@ -7,7 +7,7 @@ import (
 )
 
 type Profile struct {
-	Id          int
+	Id          *int
 	Key         *string
 	Description *string
 	Currency    *Currency
@@ -38,7 +38,7 @@ type ProfileSpecificationByID struct {
 }
 
 func (psbyid *ProfileSpecificationByID) Specified(profile *Profile, i int) bool {
-	return psbyid.id == profile.Id
+	return psbyid.id == *profile.Id
 }
 
 type OrderedMapProfileStore struct {
@@ -53,7 +53,7 @@ func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
 	ps.Lock()
 	defer ps.Unlock()
 
-	profile.Id = ps.nextId
+	profile.Id = &ps.nextId
 	ps.profiles.Set(profile.Id, *profile)
 	ps.nextId++
 

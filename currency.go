@@ -10,7 +10,7 @@ import (
 )
 
 type Currency struct {
-	Id          int
+	Id          *int
 	NumericCode *int
 	Name        *string
 	CharCode    *string
@@ -47,7 +47,7 @@ type CurrencySpecificationByID struct {
 }
 
 func (csbyid *CurrencySpecificationByID) Specified(currency *Currency, i int) bool {
-	return csbyid.id == currency.Id
+	return csbyid.id == *currency.Id
 }
 
 func (csbyid *CurrencySpecificationByID) ToSqlClauses() string {
@@ -78,7 +78,7 @@ func (cs *OrderedMapCurrencyStore) Add(ctx interface{}, currency *Currency) erro
 	cs.Lock()
 	defer cs.Unlock()
 
-	currency.Id = cs.nextId
+	currency.Id = &cs.nextId
 	cs.currencies.Set(currency.Id, *currency)
 	cs.nextId++
 

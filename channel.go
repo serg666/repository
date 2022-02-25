@@ -8,7 +8,7 @@ import (
 )
 
 type Channel struct {
-	Id     int
+	Id     *int
 	TypeId *int
 	Key    *string
 }
@@ -55,6 +55,14 @@ func (csbyti *ChannelSpecificationByTypeID) ToSqlClauses() string {
 	return fmt.Sprintf("where type_id=%d", csbyti.typeId)
 }
 
+type ChannelSpecificationByKey struct {
+	key string
+}
+
+func (csbyk *ChannelSpecificationByKey) ToSqlClauses() string {
+	return fmt.Sprintf("where key='%s'", csbyk.key)
+}
+
 func NewChannelSpecificationByID(id int) ChannelSpecification {
 	return &ChannelSpecificationByID{id: id}
 }
@@ -62,6 +70,12 @@ func NewChannelSpecificationByID(id int) ChannelSpecification {
 func NewChannelSpecificationByTypeID(typeId int) ChannelSpecification {
 	return &ChannelSpecificationByTypeID{
 		typeId: typeId,
+	}
+}
+
+func NewChannelSpecificationByKey(key string) ChannelSpecification {
+	return &ChannelSpecificationByKey{
+		key: key,
 	}
 }
 
@@ -123,7 +137,7 @@ func (cs *PGPoolChannelStore) Query(ctx interface{}, specification ChannelSpecif
 	).Scan(&c)
 
 	if err != nil {
-		return err, c, l
+		return fmt.Errorf("failed to get channels cnt: %v", err), c, l
 	}
 
 	rows, err := conn.Query(
@@ -134,7 +148,7 @@ func (cs *PGPoolChannelStore) Query(ctx interface{}, specification ChannelSpecif
 	)
 
 	if err != nil {
-		return err, c, l
+		return fmt.Errorf("failed to query channels rows: %v", err), c, l
 	}
 	defer rows.Close()
 
