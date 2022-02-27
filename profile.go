@@ -41,6 +41,14 @@ func (psbyid *ProfileSpecificationByID) Specified(profile *Profile, i int) bool 
 	return psbyid.id == *profile.Id
 }
 
+type ProfileSpecificationByKey struct {
+	key string
+}
+
+func (psbykey *ProfileSpecificationByKey) Specified(profile *Profile, i int) bool {
+	return psbykey.key == *profile.Key
+}
+
 type OrderedMapProfileStore struct {
 	sync.Mutex
 
@@ -141,6 +149,12 @@ func NewOrderedMapProfileStore(profiles *orderedmap.OrderedMap, logger LoggerFun
 func NewProfileSpecificationByID(id int) ProfileSpecification {
 	return &ProfileSpecificationByID{
 		id: id,
+	}
+}
+
+func NewProfileSpecificationByKey(key string) ProfileSpecification {
+	return &ProfileSpecificationByKey{
+		key: key,
 	}
 }
 

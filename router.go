@@ -25,7 +25,7 @@ type RouterRepository interface {
 
 type RouterWithoutSpecification struct {}
 
-func (iws *RouterWithoutSpecification) ToSqlClauses() string {
+func (rws *RouterWithoutSpecification) ToSqlClauses() string {
 	return ""
 }
 
@@ -34,24 +34,24 @@ type RouterSpecificationWithLimitAndOffset struct {
 	offset int
 }
 
-func (iswlao *RouterSpecificationWithLimitAndOffset) ToSqlClauses() string {
-	return fmt.Sprintf("limit %d offset %d", iswlao.limit, iswlao.offset)
+func (rswlao *RouterSpecificationWithLimitAndOffset) ToSqlClauses() string {
+	return fmt.Sprintf("limit %d offset %d", rswlao.limit, rswlao.offset)
 }
 
 type RouterSpecificationByID struct {
 	id int
 }
 
-func (isbyid *RouterSpecificationByID) ToSqlClauses() string {
-	return fmt.Sprintf("where id=%d", isbyid.id)
+func (rsbyid *RouterSpecificationByID) ToSqlClauses() string {
+	return fmt.Sprintf("where id=%d", rsbyid.id)
 }
 
 type RouterSpecificationByKey struct {
 	key string
 }
 
-func (isbyk *RouterSpecificationByKey) ToSqlClauses() string {
-	return fmt.Sprintf("where key='%s'", isbyk.key)
+func (rsbyk *RouterSpecificationByKey) ToSqlClauses() string {
+	return fmt.Sprintf("where key='%s'", rsbyk.key)
 }
 
 func NewRouterSpecificationByID(id int) RouterSpecification {
@@ -80,8 +80,8 @@ type PGPoolRouterStore struct {
 	logger LoggerFunc
 }
 
-func (is *PGPoolRouterStore) Add(ctx interface{}, router *Router) error {
-	_, err := is.pool.Exec(
+func (rs *PGPoolRouterStore) Add(ctx interface{}, router *Router) error {
+	_, err := rs.pool.Exec(
 		context.Background(),
 		"insert into routers (id, key) values ($1, $2)",
 		router.Id,
@@ -91,8 +91,8 @@ func (is *PGPoolRouterStore) Add(ctx interface{}, router *Router) error {
 	return err
 }
 
-func (is *PGPoolRouterStore) Delete(ctx interface{}, router *Router) (error, bool) {
-	err := is.pool.QueryRow(
+func (rs *PGPoolRouterStore) Delete(ctx interface{}, router *Router) (error, bool) {
+	err := rs.pool.QueryRow(
 		context.Background(),
 		"delete from routers where id=$1 returning key",
 		router.Id,
@@ -103,11 +103,11 @@ func (is *PGPoolRouterStore) Delete(ctx interface{}, router *Router) (error, boo
 	return err, err == pgx.ErrNoRows
 }
 
-func (is *PGPoolRouterStore) Query(ctx interface{}, specification RouterSpecification) (error, int, []*Router) {
+func (rs *PGPoolRouterStore) Query(ctx interface{}, specification RouterSpecification) (error, int, []*Router) {
 	var l []*Router
 	var c int = 0
 
-	conn, err := is.pool.Acquire(context.Background())
+	conn, err := rs.pool.Acquire(context.Background())
 
 	if err != nil {
 		return fmt.Errorf("failed to acquire connection from the pool: %v", err), c, l
@@ -154,8 +154,8 @@ func (is *PGPoolRouterStore) Query(ctx interface{}, specification RouterSpecific
 	return nil, c, l
 }
 
-func (is *PGPoolRouterStore) Update(ctx interface{}, router *Router) (error, bool) {
-	err := is.pool.QueryRow(
+func (rs *PGPoolRouterStore) Update(ctx interface{}, router *Router) (error, bool) {
+	err := rs.pool.QueryRow(
 		context.Background(),
 		`update routers set
 			key=COALESCE($2, key)
