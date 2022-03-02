@@ -46,6 +46,15 @@ func (rsbyid *RouteSpecificationByID) ToSqlClauses() string {
 	return fmt.Sprintf("where id=%d", rsbyid.id)
 }
 
+type RouteSpecificationByProfileAndInstrument struct {
+	profile    *Profile
+	instrument *Instrument
+}
+
+func (rsbypai *RouteSpecificationByProfileAndInstrument) ToSqlClauses() string {
+	return fmt.Sprintf("where profile_id=%d and instrument_id=%d", *rsbypai.profile.Id, *rsbypai.instrument.Id)
+}
+
 func NewRouteSpecificationByID(id int) RouteSpecification {
 	return &RouteSpecificationByID{id: id}
 }
@@ -54,6 +63,13 @@ func NewRouteSpecificationWithLimitAndOffset(limit int, offset int) RouteSpecifi
 	return &RouteSpecificationWithLimitAndOffset{
 		limit:  limit,
 		offset: offset,
+	}
+}
+
+func NewRouteSpecificationByProfileAndInstrument(profile *Profile, instrument *Instrument) RouteSpecification {
+	return &RouteSpecificationByProfileAndInstrument{
+		profile:    profile,
+		instrument: instrument,
 	}
 }
 

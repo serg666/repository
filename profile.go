@@ -62,7 +62,7 @@ func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
 	defer ps.Unlock()
 
 	profile.Id = &ps.nextId
-	ps.profiles.Set(profile.Id, *profile)
+	ps.profiles.Set(*profile.Id, *profile)
 	ps.nextId++
 
 	return nil
@@ -72,9 +72,9 @@ func (ps *OrderedMapProfileStore) Delete(ctx interface{}, profile *Profile) (err
 	ps.Lock()
 	defer ps.Unlock()
 
-	value, present := ps.profiles.Delete(profile.Id)
+	value, present := ps.profiles.Delete(*profile.Id)
 	if !present {
-		return fmt.Errorf("profile with id=%v not found", profile.Id), true
+		return fmt.Errorf("profile with id=%v not found", *profile.Id), true
 	}
 
 	deleted := value.(Profile)
@@ -89,9 +89,9 @@ func (ps *OrderedMapProfileStore) Update(ctx interface{}, profile *Profile) (err
 	ps.Lock()
 	defer ps.Unlock()
 
-	value, present := ps.profiles.Get(profile.Id)
+	value, present := ps.profiles.Get(*profile.Id)
 	if !present {
-		return fmt.Errorf("profile with id=%v not found", profile.Id), true
+		return fmt.Errorf("profile with id=%v not found", *profile.Id), true
 	}
 
 	old := value.(Profile)
