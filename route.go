@@ -63,6 +63,27 @@ type PGPoolRouteStore struct {
 }
 
 func (rs *PGPoolRouteStore) Add(ctx interface{}, route *Route) error {
+	var profileId    *int
+	var instrumentId *int
+	var accountId    *int
+	var routerId     *int
+
+	if route.Profile != nil {
+		profileId = route.Profile.Id
+	}
+
+	if route.Instrument != nil {
+		instrumentId = route.Instrument.Id
+	}
+
+	if route.Account != nil {
+		accountId = route.Account.Id
+	}
+
+	if route.Router != nil {
+		routerId = route.Router.Id
+	}
+
 	return rs.pool.QueryRow(
 		context.Background(),
 		`insert into routes (
@@ -72,10 +93,10 @@ func (rs *PGPoolRouteStore) Add(ctx interface{}, route *Route) error {
 			router_id,
 			settings
 		) values ($1, $2, $3, $4, $5) returning id`,
-		route.Profile.Id,
-		route.Instrument.Id,
-		route.Account.Id,
-		route.Router.Id,
+		profileId,
+		instrumentId,
+		accountId,
+		routerId,
 		route.Settings,
 	).Scan(&route.Id)
 }
@@ -120,22 +141,41 @@ func (rs *PGPoolRouteStore) Query(ctx interface{}, specification RouteSpecificat
 	defer rows.Close()
 
 	for rows.Next() {
-		route := Route{
-			Profile:    &Profile{},
-			Instrument: &Instrument{},
-			Account:    &Account{},
-			Router:     &Router{},
-		}
+		var route Route
+		var profileId *int
+		var instrumentId *int
+		var accountId *int
+		var routerId *int
 
 		if err = rows.Scan(
 			&route.Id,
-			&route.Profile.Id,
-			&route.Instrument.Id,
-			&route.Account.Id,
-			&route.Router.Id,
+			&profileId,
+			&instrumentId,
+			&accountId,
+			&routerId,
 			&route.Settings,
 		); err != nil {
 			return fmt.Errorf("failed to get route row: %v", err), c, l
+		}
+		if profileId != nil {
+			route.Profile = &Profile{
+				Id: profileId,
+			}
+		}
+		if instrumentId != nil {
+			route.Instrument = &Instrument{
+				Id: instrumentId,
+			}
+		}
+		if accountId != nil {
+			route.Account = &Account{
+				Id: accountId,
+			}
+		}
+		if routerId != nil {
+			route.Router = &Router{
+				Id: routerId,
+			}
 		}
 		l = append(l, &route)
 	}
@@ -148,6 +188,11 @@ func (rs *PGPoolRouteStore) Query(ctx interface{}, specification RouteSpecificat
 }
 
 func (rs *PGPoolRouteStore) Delete(ctx interface{}, route *Route) (error, bool) {
+	var profileId *int
+	var instrumentId *int
+	var accountId *int
+	var routerId *int
+
 	err := rs.pool.QueryRow(
 		context.Background(),
 		`delete from
@@ -162,17 +207,59 @@ func (rs *PGPoolRouteStore) Delete(ctx interface{}, route *Route) (error, bool) 
 			settings`,
 		route.Id,
 	).Scan(
-		&route.Profile.Id,
-		&route.Instrument.Id,
-		&route.Account.Id,
-		&route.Router.Id,
+		&profileId,
+		&instrumentId,
+		&accountId,
+		&routerId,
 		&route.Settings,
 	)
+
+	if profileId != nil {
+		route.Profile = &Profile{
+			Id: profileId,
+		}
+	}
+	if instrumentId != nil {
+		route.Instrument = &Instrument{
+			Id: instrumentId,
+		}
+	}
+	if accountId != nil {
+		route.Account = &Account{
+			Id: accountId,
+		}
+	}
+	if routerId != nil {
+		route.Router = &Router{
+			Id: routerId,
+		}
+	}
 
 	return err, err == pgx.ErrNoRows
 }
 
 func (rs *PGPoolRouteStore) Update(ctx interface{}, route *Route) (error, bool) {
+	var profileId *int
+	var instrumentId *int
+	var accountId *int
+	var routerId *int
+
+	if route.Profile != nil {
+		profileId = route.Profile.Id
+	}
+
+	if route.Instrument != nil {
+		instrumentId = route.Instrument.Id
+	}
+
+	if route.Account != nil {
+		accountId = route.Account.Id
+	}
+
+	if route.Router != nil {
+		routerId = route.Router.Id
+	}
+
 	err := rs.pool.QueryRow(
 		context.Background(),
 		`update routes set
@@ -190,18 +277,39 @@ func (rs *PGPoolRouteStore) Update(ctx interface{}, route *Route) (error, bool) 
 			router_id,
 			settings`,
 		route.Id,
-		route.Profile.Id,
-		route.Instrument.Id,
-		route.Account.Id,
-		route.Router.Id,
+		profileId,
+		instrumentId,
+		accountId,
+		routerId,
 		route.Settings,
 	).Scan(
-		&route.Profile.Id,
-		&route.Instrument.Id,
-		&route.Account.Id,
-		&route.Router.Id,
+		&profileId,
+		&instrumentId,
+		&accountId,
+		&routerId,
 		&route.Settings,
 	)
+
+	if profileId != nil {
+		route.Profile = &Profile{
+			Id: profileId,
+		}
+	}
+	if instrumentId != nil {
+		route.Instrument = &Instrument{
+			Id: instrumentId,
+		}
+	}
+	if accountId != nil {
+		route.Account = &Account{
+			Id: accountId,
+		}
+	}
+	if routerId != nil {
+		route.Router = &Router{
+			Id: routerId,
+		}
+	}
 
 	return err, err == pgx.ErrNoRows
 }

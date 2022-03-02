@@ -70,6 +70,17 @@ type PGPoolAccountStore struct {
 }
 
 func (as *PGPoolAccountStore) Add(ctx interface{}, account *Account) error {
+	var currencyId *int
+	var channelId *int
+
+	if account.Currency != nil {
+		currencyId = account.Currency.Id
+	}
+
+	if account.Channel != nil {
+		channelId = account.Channel.Id
+	}
+
 	return as.pool.QueryRow(
 		context.Background(),
 		`insert into accounts (
@@ -95,8 +106,8 @@ func (as *PGPoolAccountStore) Add(ctx interface{}, account *Account) error {
 		account.PartialReversalEnabled,
 		account.PartialRefundEnabled,
 		account.CurrencyConversionEnabled,
-		account.Currency.Id,
-		account.Channel.Id,
+		currencyId,
+		channelId,
 		account.Settings,
 	).Scan(&account.Id)
 }
@@ -148,10 +159,9 @@ func (as *PGPoolAccountStore) Query(ctx interface{}, specification AccountSpecif
 	defer rows.Close()
 
 	for rows.Next() {
-		account := Account{
-			Currency: &Currency{},
-			Channel:  &Channel{},
-		}
+		var account Account
+		var currencyId *int
+		var channelId *int
 
 		if err = rows.Scan(
 			&account.Id,
@@ -165,10 +175,20 @@ func (as *PGPoolAccountStore) Query(ctx interface{}, specification AccountSpecif
 			&account.PartialRefundEnabled,
 			&account.CurrencyConversionEnabled,
 			&account.Settings,
-			&account.Currency.Id,
-			&account.Channel.Id,
+			&currencyId,
+			&channelId,
 		); err != nil {
 			return fmt.Errorf("failed to get account row: %v", err), c, l
+		}
+		if currencyId != nil {
+			account.Currency = &Currency{
+				Id: currencyId,
+			}
+		}
+		if channelId != nil {
+			account.Channel = &Channel{
+				Id: channelId,
+			}
 		}
 		l = append(l, &account)
 	}
@@ -181,6 +201,9 @@ func (as *PGPoolAccountStore) Query(ctx interface{}, specification AccountSpecif
 }
 
 func (as *PGPoolAccountStore) Delete(ctx interface{}, account *Account) (error, bool) {
+	var currencyId *int
+	var channelId *int
+
 	err := as.pool.QueryRow(
 		context.Background(),
 		`delete from
@@ -212,14 +235,36 @@ func (as *PGPoolAccountStore) Delete(ctx interface{}, account *Account) (error, 
 		&account.PartialRefundEnabled,
 		&account.CurrencyConversionEnabled,
 		&account.Settings,
-		&account.Currency.Id,
-		&account.Channel.Id,
+		&currencyId,
+		&channelId,
 	)
+
+	if currencyId != nil {
+		account.Currency = &Currency{
+			Id: currencyId,
+		}
+	}
+	if channelId != nil {
+		account.Channel = &Channel{
+			Id: channelId,
+		}
+	}
 
 	return err, err == pgx.ErrNoRows
 }
 
 func (as *PGPoolAccountStore) Update(ctx interface{}, account *Account) (error, bool) {
+	var currencyId *int
+	var channelId *int
+
+	if account.Currency != nil {
+		currencyId = account.Currency.Id
+	}
+
+	if account.Channel != nil {
+		channelId = account.Channel.Id
+	}
+
 	err := as.pool.QueryRow(
 		context.Background(),
 		`update accounts set
@@ -261,8 +306,8 @@ func (as *PGPoolAccountStore) Update(ctx interface{}, account *Account) (error, 
 		account.PartialRefundEnabled,
 		account.CurrencyConversionEnabled,
 		account.Settings,
-		account.Currency.Id,
-		account.Channel.Id,
+		currencyId,
+		channelId,
 	).Scan(
 		&account.IsEnabled,
 		&account.IsTest,
@@ -274,9 +319,20 @@ func (as *PGPoolAccountStore) Update(ctx interface{}, account *Account) (error, 
 		&account.PartialRefundEnabled,
 		&account.CurrencyConversionEnabled,
 		&account.Settings,
-		&account.Currency.Id,
-		&account.Channel.Id,
+		&currencyId,
+		&channelId,
 	)
+
+	if currencyId != nil {
+		account.Currency = &Currency{
+			Id: currencyId,
+		}
+	}
+	if channelId != nil {
+		account.Channel = &Channel{
+			Id: channelId,
+		}
+	}
 
 	return err, err == pgx.ErrNoRows
 }
