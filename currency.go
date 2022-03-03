@@ -79,7 +79,7 @@ func (cs *OrderedMapCurrencyStore) Add(ctx interface{}, currency *Currency) erro
 	defer cs.Unlock()
 
 	currency.Id = &cs.nextId
-	cs.currencies.Set(currency.Id, *currency)
+	cs.currencies.Set(*currency.Id, *currency)
 	cs.nextId++
 
 	return nil
@@ -89,9 +89,9 @@ func (cs *OrderedMapCurrencyStore) Delete(ctx interface{}, currency *Currency) (
 	cs.Lock()
 	defer cs.Unlock()
 
-	value, present := cs.currencies.Delete(currency.Id)
+	value, present := cs.currencies.Delete(*currency.Id)
 	if !present {
-		return fmt.Errorf("currency with id=%v not found", currency.Id), true
+		return fmt.Errorf("currency with id=%v not found", *currency.Id), true
 	}
 
 	deleted := value.(Currency)
@@ -107,9 +107,9 @@ func (cs *OrderedMapCurrencyStore) Update(ctx interface{}, currency *Currency) (
 	cs.Lock()
 	defer cs.Unlock()
 
-	value, present := cs.currencies.Get(currency.Id)
+	value, present := cs.currencies.Get(*currency.Id)
 	if !present {
-		return fmt.Errorf("currency with id=%v not found", currency.Id), true
+		return fmt.Errorf("currency with id=%v not found", *currency.Id), true
 	}
 
 	old := value.(Currency)

@@ -65,8 +65,10 @@ func NewAccountSpecificationWithLimitAndOffset(limit int, offset int) AccountSpe
 }
 
 type PGPoolAccountStore struct {
-	pool   *pgxpool.Pool
-	logger LoggerFunc
+	pool          *pgxpool.Pool
+	currencyStore CurrencyRepository
+	channelStore  ChannelRepository
+	logger        LoggerFunc
 }
 
 func (as *PGPoolAccountStore) Add(ctx interface{}, account *Account) error {
@@ -110,6 +112,58 @@ func (as *PGPoolAccountStore) Add(ctx interface{}, account *Account) error {
 		channelId,
 		account.Settings,
 	).Scan(&account.Id)
+}
+
+func (as *PGPoolAccountStore) refreshAccountCurrency(ctx interface{}, account *Account) error {
+	if !(account.Currency != nil && account.Currency.Id != nil) {
+		return nil
+	}
+
+	err, _, currencies := as.currencyStore.Query(ctx, NewCurrencySpecificationByID(
+		*account.Currency.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update account currency: %v", err)
+	}
+
+	for _, currency := range currencies {
+		account.Currency = currency
+	}
+
+	return nil
+}
+
+func (as *PGPoolAccountStore) refreshAccountChannel(ctx interface{}, account *Account) error {
+	if !(account.Channel != nil && account.Channel.Id != nil) {
+		return nil
+	}
+
+	err, _, channels := as.channelStore.Query(ctx, NewChannelSpecificationByID(
+		*account.Channel.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update account channel: %v", err)
+	}
+
+	for _, channel := range channels {
+		account.Channel = channel
+	}
+
+	return nil
+}
+
+func (as *PGPoolAccountStore) refreshAccountForeigns(ctx interface{}, account *Account) error {
+	if err := as.refreshAccountCurrency(ctx, account); err != nil {
+		return err
+	}
+
+	if err := as.refreshAccountChannel(ctx, account); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (as *PGPoolAccountStore) Query(ctx interface{}, specification AccountSpecification) (error, int, []*Account) {
@@ -190,6 +244,9 @@ func (as *PGPoolAccountStore) Query(ctx interface{}, specification AccountSpecif
 				Id: channelId,
 			}
 		}
+		if err := as.refreshAccountForeigns(ctx, &account); err != nil {
+			return fmt.Errorf("Can not update account foreigns: %v", err), c, l
+		}
 		l = append(l, &account)
 	}
 
@@ -248,6 +305,10 @@ func (as *PGPoolAccountStore) Delete(ctx interface{}, account *Account) (error, 
 		account.Channel = &Channel{
 			Id: channelId,
 		}
+	}
+
+	if e := as.refreshAccountForeigns(ctx, account); e != nil {
+		return fmt.Errorf("Can not update account foreigns: %v", e), err == pgx.ErrNoRows
 	}
 
 	return err, err == pgx.ErrNoRows
@@ -334,12 +395,23 @@ func (as *PGPoolAccountStore) Update(ctx interface{}, account *Account) (error, 
 		}
 	}
 
+	if e := as.refreshAccountForeigns(ctx, account); e != nil {
+		return fmt.Errorf("Can not update account foreigns: %v", e), err == pgx.ErrNoRows
+	}
+
 	return err, err == pgx.ErrNoRows
 }
 
-func NewPGPoolAccountStore(pool *pgxpool.Pool, logger LoggerFunc) AccountRepository {
+func NewPGPoolAccountStore(
+	pool *pgxpool.Pool,
+	currencyStore CurrencyRepository,
+	channelStore ChannelRepository,
+	logger LoggerFunc,
+) AccountRepository {
 	return &PGPoolAccountStore{
-		pool:   pool,
-		logger: logger,
+		pool:          pool,
+		currencyStore: currencyStore,
+		channelStore:  channelStore,
+		logger:        logger,
 	}
 }

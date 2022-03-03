@@ -52,9 +52,10 @@ func (psbykey *ProfileSpecificationByKey) Specified(profile *Profile, i int) boo
 type OrderedMapProfileStore struct {
 	sync.Mutex
 
-	profiles *orderedmap.OrderedMap
-	nextId   int
-	logger   LoggerFunc
+	profiles      *orderedmap.OrderedMap
+	nextId        int
+	currencyStore CurrencyRepository
+	logger        LoggerFunc
 }
 
 func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
@@ -64,6 +65,34 @@ func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
 	profile.Id = &ps.nextId
 	ps.profiles.Set(*profile.Id, *profile)
 	ps.nextId++
+
+	return nil
+}
+
+func (ps *OrderedMapProfileStore) refreshProfileCurrency(ctx interface{}, profile *Profile) error {
+	if !(profile.Currency != nil && profile.Currency.Id != nil) {
+		return nil
+	}
+
+	err, _, currencies := ps.currencyStore.Query(ctx, NewCurrencySpecificationByID(
+		*profile.Currency.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update profile currency: %v", err)
+	}
+
+	for _, currency := range currencies {
+		profile.Currency = currency
+	}
+
+	return nil
+}
+
+func (ps *OrderedMapProfileStore) refreshProfileForeigns(ctx interface{}, profile *Profile) error {
+	if err := ps.refreshProfileCurrency(ctx, profile); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -81,6 +110,10 @@ func (ps *OrderedMapProfileStore) Delete(ctx interface{}, profile *Profile) (err
 	profile.Key = deleted.Key
 	profile.Description = deleted.Description
 	profile.Currency = deleted.Currency
+
+	if err := ps.refreshProfileForeigns(ctx, profile); err != nil {
+		return fmt.Errorf("Can not update profile foreigns: %v", err), false
+	}
 
 	return nil, false
 }
@@ -116,6 +149,10 @@ func (ps *OrderedMapProfileStore) Update(ctx interface{}, profile *Profile) (err
 
 	ps.profiles.Set(old.Id, old)
 
+	if err := ps.refreshProfileForeigns(ctx, profile); err != nil {
+		return fmt.Errorf("Can not update profile foreigns: %v", err), false
+	}
+
 	return nil, false
 }
 
@@ -130,6 +167,9 @@ func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSp
 	for el := ps.profiles.Oldest(); el != nil; el = el.Next() {
 		profile := el.Value.(Profile)
 		if specification.Specified(&profile, c) {
+			if err := ps.refreshProfileForeigns(ctx, &profile); err != nil {
+				return fmt.Errorf("Can not update profile foreigns: %v", err), c, l
+			}
 			l = append(l, &profile)
 		}
 		c++
@@ -138,11 +178,16 @@ func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSp
 	return nil, ps.profiles.Len(), l
 }
 
-func NewOrderedMapProfileStore(profiles *orderedmap.OrderedMap, logger LoggerFunc) ProfileRepository {
+func NewOrderedMapProfileStore(
+	profiles *orderedmap.OrderedMap,
+	currencyStore CurrencyRepository,
+	logger LoggerFunc,
+) ProfileRepository {
 	return &OrderedMapProfileStore{
-		profiles: profiles,
-		nextId:   0,
-		logger:   logger,
+		profiles:      profiles,
+		nextId:        0,
+		currencyStore: currencyStore,
+		logger:        logger,
 	}
 }
 

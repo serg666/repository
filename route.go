@@ -74,8 +74,12 @@ func NewRouteSpecificationByProfileAndInstrument(profile *Profile, instrument *I
 }
 
 type PGPoolRouteStore struct {
-	pool   *pgxpool.Pool
-	logger LoggerFunc
+	pool            *pgxpool.Pool
+	profileStore    ProfileRepository
+	instrumentStore InstrumentRepository
+	accountStore    AccountRepository
+	routerStore     RouterRepository
+	logger          LoggerFunc
 }
 
 func (rs *PGPoolRouteStore) Add(ctx interface{}, route *Route) error {
@@ -115,6 +119,106 @@ func (rs *PGPoolRouteStore) Add(ctx interface{}, route *Route) error {
 		routerId,
 		route.Settings,
 	).Scan(&route.Id)
+}
+
+func (rs *PGPoolRouteStore) refreshRouteProfile(ctx interface{}, route *Route) error {
+	if !(route.Profile != nil && route.Profile.Id != nil) {
+		return nil
+	}
+
+	err, _, profiles := rs.profileStore.Query(ctx, NewProfileSpecificationByID(
+		*route.Profile.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update route profile: %v", err)
+	}
+
+	for _, profile := range profiles {
+		route.Profile = profile
+	}
+
+	return nil
+}
+
+func (rs *PGPoolRouteStore) refreshRouteInstrument(ctx interface{}, route *Route) error {
+	if !(route.Instrument != nil && route.Instrument.Id != nil) {
+		return nil
+	}
+
+	err, _, instruments := rs.instrumentStore.Query(ctx, NewInstrumentSpecificationByID(
+		*route.Instrument.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update route instrument: %v", err)
+	}
+
+	for _, instrument := range instruments {
+		route.Instrument = instrument
+	}
+
+	return nil
+}
+
+func (rs *PGPoolRouteStore) refreshRouteAccount(ctx interface{}, route *Route) error {
+	if !(route.Account != nil && route.Account.Id != nil) {
+		return nil
+	}
+
+	err, _, accounts := rs.accountStore.Query(ctx, NewAccountSpecificationByID(
+		*route.Account.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update route account: %v", err)
+	}
+
+	for _, account := range accounts {
+		route.Account = account
+	}
+
+	return nil
+}
+
+func (rs *PGPoolRouteStore) refreshRouteRouter(ctx interface{}, route *Route) error {
+	if !(route.Router != nil && route.Router.Id != nil) {
+		return nil
+	}
+
+	err, _, routers := rs.routerStore.Query(ctx, NewRouterSpecificationByID(
+		*route.Router.Id,
+	))
+
+	if err != nil {
+		return fmt.Errorf("Can not update route router: %v", err)
+	}
+
+	for _, router := range routers {
+		route.Router = router
+	}
+
+	return nil
+}
+
+func (rs *PGPoolRouteStore) refreshRouteForeigns(ctx interface{}, route *Route) error {
+	if err := rs.refreshRouteProfile(ctx, route); err != nil {
+		return err
+	}
+
+	if err := rs.refreshRouteInstrument(ctx, route); err != nil {
+		return err
+	}
+
+	if err := rs.refreshRouteAccount(ctx, route); err != nil {
+		return err
+	}
+
+	if err := rs.refreshRouteRouter(ctx, route); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (rs *PGPoolRouteStore) Query(ctx interface{}, specification RouteSpecification) (error, int, []*Route) {
@@ -193,6 +297,9 @@ func (rs *PGPoolRouteStore) Query(ctx interface{}, specification RouteSpecificat
 				Id: routerId,
 			}
 		}
+		if err := rs.refreshRouteForeigns(ctx, &route); err != nil {
+			return fmt.Errorf("Can not update route foreigns: %v", err), c, l
+		}
 		l = append(l, &route)
 	}
 
@@ -249,6 +356,10 @@ func (rs *PGPoolRouteStore) Delete(ctx interface{}, route *Route) (error, bool) 
 		route.Router = &Router{
 			Id: routerId,
 		}
+	}
+
+	if e := rs.refreshRouteForeigns(ctx, route); e != nil {
+		return fmt.Errorf("Can not update route foreigns: %v", e), err == pgx.ErrNoRows
 	}
 
 	return err, err == pgx.ErrNoRows
@@ -327,12 +438,27 @@ func (rs *PGPoolRouteStore) Update(ctx interface{}, route *Route) (error, bool) 
 		}
 	}
 
+	if e := rs.refreshRouteForeigns(ctx, route); e != nil {
+		return fmt.Errorf("Can not update route foreigns: %v", e), err == pgx.ErrNoRows
+	}
+
 	return err, err == pgx.ErrNoRows
 }
 
-func NewPGPoolRouteStore(pool *pgxpool.Pool, logger LoggerFunc) RouteRepository {
+func NewPGPoolRouteStore(
+	pool            *pgxpool.Pool,
+	profileStore    ProfileRepository,
+	instrumentStore InstrumentRepository,
+	accountStore    AccountRepository,
+	routerStore     RouterRepository,
+	logger          LoggerFunc,
+) RouteRepository {
 	return &PGPoolRouteStore{
-		pool:   pool,
-		logger: logger,
+		pool:            pool,
+		profileStore:    profileStore,
+		instrumentStore: instrumentStore,
+		accountStore:    accountStore,
+		routerStore:     routerStore,
+		logger:          logger,
 	}
 }
