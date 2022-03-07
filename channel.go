@@ -13,6 +13,10 @@ type Channel struct {
 	Key    *string
 }
 
+func (c *Channel) String() string {
+	return fmt.Sprintf("Channel <%s>", *c.Key)
+}
+
 type ChannelSpecification interface {
 	ToSqlClauses() string
 }

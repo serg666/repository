@@ -25,6 +25,10 @@ type Account struct {
 	Settings                  *AccountSettings
 }
 
+func (a *Account) String() string {
+	return fmt.Sprintf("Account <%d> (%s)", *a.Id, a.Channel)
+}
+
 type AccountSpecification interface {
 	ToSqlClauses() string
 }
