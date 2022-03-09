@@ -21,8 +21,8 @@ type ThreeDSecure20 struct {
 }
 
 type ThreeDSMethodUrl struct {
-	MethodUrl                    *string
-	ThreeDSMethodData            *string
+	MethodUrl         *string
+	ThreeDSMethodData *string
 }
 
 type Transaction struct {
