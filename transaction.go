@@ -22,8 +22,6 @@ type ThreeDSecure20 struct {
 
 type ThreeDSMethodUrl struct {
 	MethodUrl                    *string
-	ThreeDSMethodNotificationURL *string
-	ThreeDSServerTransId         *string
 	ThreeDSMethodData            *string
 }
 
