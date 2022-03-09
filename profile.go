@@ -163,7 +163,6 @@ func (ps *OrderedMapProfileStore) Query(ctx interface{}, specification ProfileSp
 	var l []*Profile
 	var c int = 0
 
-	ps.logger(ctx).Print("some message")
 	for el := ps.profiles.Oldest(); el != nil; el = el.Next() {
 		profile := el.Value.(Profile)
 		if specification.Specified(&profile, c) {
