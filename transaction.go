@@ -526,7 +526,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			order_id,
 			reference_id,
 			threedsecure10,
-			threedsecure20
+			threedsecure20,
 			threedsmethodurl`,
 		transaction.Id,
 		transaction.Type,
