@@ -41,6 +41,7 @@ type Transaction struct {
 	AuthCode          *string
 	RRN               *string
 	ResponseCode      *string
+	ErrorMessage      *string
 	RemoteId          *string
 	OrderId           *string
 	Reference         *Transaction
@@ -149,8 +150,9 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 			reference_id,
 			threedsecure10,
 			threedsecure20,
-			threedsmethodurl
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id, created`,
+			threedsmethodurl,
+			error_message
+		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) returning id, created`,
 		transaction.Type,
 		transaction.Status,
 		profileId,
@@ -170,6 +172,7 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 		transaction.ThreeDSecure10,
 		transaction.ThreeDSecure20,
 		transaction.ThreeDSMethodUrl,
+		transaction.ErrorMessage,
 	).Scan(&transaction.Id, &transaction.Created)
 }
 
@@ -364,7 +367,8 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 				reference_id,
 				threedsecure10,
 				threedsecure20,
-				threedsmethodurl
+				threedsmethodurl,
+				error_message
 			from transactions %s`,
 			specification.ToSqlClauses(),
 		),
@@ -406,6 +410,7 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 			&transaction.ThreeDSecure10,
 			&transaction.ThreeDSecure20,
 			&transaction.ThreeDSMethodUrl,
+			&transaction.ErrorMessage,
 		); err != nil {
 			return fmt.Errorf("failed to get transaction row: %v", err), c, l
 		}
@@ -505,7 +510,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			reference_id=COALESCE($17, reference_id),
 			threedsecure10=COALESCE($18, threedsecure10),
 			threedsecure20=COALESCE($19, threedsecure20),
-			threedsmethodurl=COALESCE($20, threedsmethodurl)
+			threedsmethodurl=COALESCE($20, threedsmethodurl),
+			error_message=COALESCE($21, error_message)
 		where
 			id=$1
 		returning
@@ -527,7 +533,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			reference_id,
 			threedsecure10,
 			threedsecure20,
-			threedsmethodurl`,
+			threedsmethodurl,
+			error_message`,
 		transaction.Id,
 		transaction.Type,
 		transaction.Status,
@@ -548,6 +555,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		transaction.ThreeDSecure10,
 		transaction.ThreeDSecure20,
 		transaction.ThreeDSMethodUrl,
+		transaction.ErrorMessage,
 	).Scan(
 		&transaction.Type,
 		&transaction.Status,
@@ -568,6 +576,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		&transaction.ThreeDSecure10,
 		&transaction.ThreeDSecure20,
 		&transaction.ThreeDSMethodUrl,
+		&transaction.ErrorMessage,
 	)
 
 	if profileId != nil {
