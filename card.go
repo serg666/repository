@@ -12,12 +12,7 @@ import (
 	"github.com/wk8/go-ordered-map"
 )
 
-type CVV string
 type PAN string
-
-func (s CVV) String() string {
-	return strings.Repeat("*", len(s))
-}
 
 func (s PAN) String() string {
 	repeat := len(s)-4
@@ -32,7 +27,6 @@ type Card struct {
 	Id      *int
 	Token   *string
 	PAN     *PAN
-	CVV     *CVV
 	ExpDate *time.Time
 	Holder  *string
 }
@@ -46,7 +40,6 @@ func (c Card) Type() string {
 	expire := *c.ExpDate
 	card := creditcard.Card{
 		Number: string(*c.PAN),
-		Cvv: string(*c.CVV),
 		Month: expire.Month().String(),
 		Year: string(expire.Year()),
 	}
@@ -135,7 +128,6 @@ func (cs *OrderedMapCardStore) Delete(ctx interface{}, card *Card) (error, bool)
 	deleted := value.(Card)
 	card.Token = deleted.Token
 	card.PAN = deleted.PAN
-	card.CVV = deleted.CVV
 	card.ExpDate = deleted.ExpDate
 	card.Holder = deleted.Holder
 
@@ -163,12 +155,6 @@ func (cs *OrderedMapCardStore) Update(ctx interface{}, card *Card) (error, bool)
 		old.PAN = card.PAN
 	} else {
 		card.PAN = old.PAN
-	}
-
-	if card.CVV != nil {
-		old.CVV = card.CVV
-	} else {
-		card.CVV = old.CVV
 	}
 
 	if card.ExpDate != nil {
