@@ -78,7 +78,8 @@ func (cs *OrderedMapCurrencyStore) Add(ctx interface{}, currency *Currency) erro
 	cs.Lock()
 	defer cs.Unlock()
 
-	currency.Id = &cs.nextId
+	id := cs.nextId
+	currency.Id = &id
 	cs.currencies.Set(*currency.Id, *currency)
 	cs.nextId++
 
@@ -138,7 +139,7 @@ func (cs *OrderedMapCurrencyStore) Update(ctx interface{}, currency *Currency) (
 		currency.Exponent = old.Exponent
 	}
 
-	cs.currencies.Set(old.Id, old)
+	cs.currencies.Set(*old.Id, old)
 
 	return nil, false
 }
@@ -164,7 +165,7 @@ func (cs *OrderedMapCurrencyStore) Query(ctx interface{}, specification Currency
 func NewOrderedMapCurrencyStore(currencies *orderedmap.OrderedMap, logger LoggerFunc) CurrencyRepository {
 	return &OrderedMapCurrencyStore{
 		currencies: currencies,
-		nextId:     0,
+		nextId:     1,
 		logger:     logger,
 	}
 }

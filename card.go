@@ -108,7 +108,8 @@ func (cs *OrderedMapCardStore) Add(ctx interface{}, card *Card) error {
 		return fmt.Errorf("can not generate token: %v", err)
 	}
 
-	card.Id = &cs.nextId
+	id := cs.nextId
+	card.Id = &id
 	card.Token = token
 	cs.cards.Set(*card.Id, *card)
 	cs.nextId++
@@ -169,7 +170,7 @@ func (cs *OrderedMapCardStore) Update(ctx interface{}, card *Card) (error, bool)
 		card.Holder = old.Holder
 	}
 
-	cs.cards.Set(old.Id, old)
+	cs.cards.Set(*old.Id, old)
 
 	return nil, false
 }
@@ -198,7 +199,7 @@ func NewOrderedMapCardStore(
 ) CardRepository {
 	return &OrderedMapCardStore{
 		cards:  cards,
-		nextId: 0,
+		nextId: 1,
 		logger: logger,
 	}
 }

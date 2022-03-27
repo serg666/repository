@@ -62,7 +62,8 @@ func (ps *OrderedMapProfileStore) Add(ctx interface{}, profile *Profile) error {
 	ps.Lock()
 	defer ps.Unlock()
 
-	profile.Id = &ps.nextId
+	id := ps.nextId
+	profile.Id = &id
 	ps.profiles.Set(*profile.Id, *profile)
 	ps.nextId++
 
@@ -147,7 +148,7 @@ func (ps *OrderedMapProfileStore) Update(ctx interface{}, profile *Profile) (err
 		profile.Currency = old.Currency
 	}
 
-	ps.profiles.Set(old.Id, old)
+	ps.profiles.Set(*old.Id, old)
 
 	if err := ps.refreshProfileForeigns(ctx, profile); err != nil {
 		return fmt.Errorf("Can not update profile foreigns: %v", err), false
@@ -184,7 +185,7 @@ func NewOrderedMapProfileStore(
 ) ProfileRepository {
 	return &OrderedMapProfileStore{
 		profiles:      profiles,
-		nextId:        0,
+		nextId:        1,
 		currencyStore: currencyStore,
 		logger:        logger,
 	}
