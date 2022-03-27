@@ -132,6 +132,13 @@ func (ss *OrderedMapSessionStore) Query(ctx interface{}, specification SessionSp
 	return nil, ss.sessions.Len(), l
 }
 
+func NewSession(key string, data SessionData) *Session {
+	return &Session{
+		Key:  &key,
+		Data: &data,
+	}
+}
+
 func NewOrderedMapSessionStore(
 	sessions *orderedmap.OrderedMap,
 	logger   LoggerFunc,
