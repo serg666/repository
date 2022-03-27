@@ -72,9 +72,13 @@ func (tx *Transaction) Wait3DS() {
 	tx.Status = &txStatus
 }
 
-func (tx *Transaction) WaitAreq() {
-	txStatus := "waitareq"
+func (tx *Transaction) WaitMethodUrl() {
+	txStatus := "waitmethodurl"
 	tx.Status = &txStatus
+}
+
+func (tx *Transaction) IsMethodUrlWaiting() bool {
+	return *tx.Status == "waitmethodurl"
 }
 
 func (tx *Transaction) InFinalState() bool {
