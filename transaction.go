@@ -49,6 +49,7 @@ type Transaction struct {
 	ThreeDSecure20    *ThreeDSecure20
 	ThreeDSMethodUrl  *ThreeDSMethodUrl
 	AdditionalData    *AdditionalData
+	Customer          *string
 }
 
 func (tx *Transaction) New() {
@@ -103,6 +104,7 @@ func NewTransaction(
 	instrument *Instrument,
 	instrumentId *int,
 	amount *uint,
+	customer *string,
 	reference *Transaction,
 ) *Transaction {
 	transaction := &Transaction{
@@ -117,6 +119,7 @@ func NewTransaction(
 		CurrencyConverted: account.Currency,
 		OrderId: orderId,
 		Reference: reference,
+		Customer: customer,
 	}
 
 	transaction.New()
@@ -226,8 +229,9 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 			threedsecure20,
 			threedsmethodurl,
 			error_message,
-			additional_data
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) returning id, created`,
+			additional_data,
+			customer
+		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) returning id, created`,
 		transaction.Type,
 		transaction.Status,
 		profileId,
@@ -249,6 +253,7 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 		transaction.ThreeDSMethodUrl,
 		transaction.ErrorMessage,
 		transaction.AdditionalData,
+		transaction.Customer,
 	).Scan(&transaction.Id, &transaction.Created)
 }
 
@@ -445,7 +450,8 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 				threedsecure20,
 				threedsmethodurl,
 				error_message,
-				additional_data
+				additional_data,
+				customer
 			from transactions %s`,
 			specification.ToSqlClauses(),
 		),
@@ -489,6 +495,7 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 			&transaction.ThreeDSMethodUrl,
 			&transaction.ErrorMessage,
 			&transaction.AdditionalData,
+			&transaction.Customer,
 		); err != nil {
 			return fmt.Errorf("failed to get transaction row: %v", err), c, l
 		}
@@ -590,7 +597,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			threedsecure20=COALESCE($19, threedsecure20),
 			threedsmethodurl=COALESCE($20, threedsmethodurl),
 			error_message=COALESCE($21, error_message),
-			additional_data=COALESCE($22, additional_data)
+			additional_data=COALESCE($22, additional_data),
+			customer=COALESCE($23, customer)
 		where
 			id=$1
 		returning
@@ -614,7 +622,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			threedsecure20,
 			threedsmethodurl,
 			error_message,
-			additional_data`,
+			additional_data,
+			customer`,
 		transaction.Id,
 		transaction.Type,
 		transaction.Status,
@@ -637,6 +646,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		transaction.ThreeDSMethodUrl,
 		transaction.ErrorMessage,
 		transaction.AdditionalData,
+		transaction.Customer,
 	).Scan(
 		&transaction.Type,
 		&transaction.Status,
@@ -659,6 +669,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		&transaction.ThreeDSMethodUrl,
 		&transaction.ErrorMessage,
 		&transaction.AdditionalData,
+		&transaction.Customer,
 	)
 
 	if profileId != nil {
