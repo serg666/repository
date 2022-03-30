@@ -72,6 +72,10 @@ func (tx *Transaction) Wait3DS() {
 	tx.Status = &txStatus
 }
 
+func (tx *Transaction) Is3DSWaiting() bool {
+	return *tx.Status == "wait3ds"
+}
+
 func (tx *Transaction) WaitMethodUrl() {
 	txStatus := "waitmethodurl"
 	tx.Status = &txStatus
