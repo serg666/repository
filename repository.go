@@ -11,6 +11,7 @@ const (
 	AUTH = "authorize"
 	PREAUTH = "preauthorize"
 	CONFIRMAUTH = "confirmauth"
+	REVERSAL = "reversal"
 
 	NEW = "new"
 	SUCCESS = "success"
