@@ -13,6 +13,7 @@ const (
 	CONFIRMAUTH = "confirmauth"
 	REVERSAL = "reversal"
 	REFUND = "refund"
+	REBILL = "rebill"
 
 	NEW = "new"
 	SUCCESS = "success"
