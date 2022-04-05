@@ -7,6 +7,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	AUTH = "authorize"
+	PREAUTH = "preauthorize"
+	CONFIRMAUTH = "confirmauth"
+
+	NEW = "new"
+	SUCCESS = "success"
+	DECLINED = "declined"
+	WAIT3DS = "wait3ds"
+	WAITMETHODURL = "waitmethodurl"
+)
+
 type LoggerFunc func(interface{}) logrus.FieldLogger
 
 func MakePgPoolFromDSN(dsn string) (*pgxpool.Pool, error) {

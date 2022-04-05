@@ -53,47 +53,55 @@ type Transaction struct {
 }
 
 func (tx *Transaction) New() {
-	txStatus := "new"
+	txStatus := NEW
 	tx.Status = &txStatus
 }
 
 func (tx *Transaction) Success() {
-	txStatus := "success"
+	txStatus := SUCCESS
 	tx.Status = &txStatus
 }
 
+func (tx *Transaction) IsSuccess() bool {
+	return *tx.Status == SUCCESS
+}
+
 func (tx *Transaction) Declined(errorMsg *string) {
-	txStatus := "declined"
+	txStatus := DECLINED
 	tx.Status = &txStatus
 	tx.ErrorMessage = errorMsg
 }
 
 func (tx *Transaction) Wait3DS() {
-	txStatus := "wait3ds"
+	txStatus := WAIT3DS
 	tx.Status = &txStatus
 }
 
 func (tx *Transaction) Is3DSWaiting() bool {
-	return *tx.Status == "wait3ds"
+	return *tx.Status == WAIT3DS
 }
 
 func (tx *Transaction) WaitMethodUrl() {
-	txStatus := "waitmethodurl"
+	txStatus := WAITMETHODURL
 	tx.Status = &txStatus
 }
 
 func (tx *Transaction) IsMethodUrlWaiting() bool {
-	return *tx.Status == "waitmethodurl"
+	return *tx.Status == WAITMETHODURL
 }
 
 func (tx *Transaction) InFinalState() bool {
 	switch *tx.Status {
 	case
-		"success",
-		"declined":
+		SUCCESS,
+		DECLINED:
 		return true
 	}
 	return false
+}
+
+func (tx *Transaction) IsPreAuth() bool {
+	return *tx.Type == PREAUTH
 }
 
 func NewTransaction(
@@ -127,6 +135,11 @@ func NewTransaction(
 	return transaction
 }
 
+type TurnOverResult struct {
+	Cnt uint
+	Sum uint
+}
+
 type TransactionSpecification interface {
 	ToSqlClauses() string
 }
@@ -135,6 +148,7 @@ type TransactionRepository interface {
 	Add(ctx interface{}, transaction *Transaction) error
 	Update(ctx interface{}, transaction *Transaction) (error, bool)
 	Query(ctx interface{}, specification TransactionSpecification) (error, int, []*Transaction)
+	TypeTurnOver(ctx interface{}, specification TransactionSpecification) (error, *map[string]TurnOverResult)
 }
 
 type TransactionSpecificationWithLimitAndOffset struct {
@@ -154,6 +168,15 @@ func (tsbyid *TransactionSpecificationByID) ToSqlClauses() string {
 	return fmt.Sprintf("where id=%d", tsbyid.id)
 }
 
+type TransactionSpecificationByReferenceIdAndStatus struct {
+	id     int
+	status string
+}
+
+func (spec *TransactionSpecificationByReferenceIdAndStatus) ToSqlClauses() string {
+	return fmt.Sprintf("where reference_id=%d and status='%s'", spec.id, spec.status)
+}
+
 func NewTransactionSpecificationByID(id int) TransactionSpecification {
 	return &TransactionSpecificationByID{id: id}
 }
@@ -162,6 +185,13 @@ func NewTransactionSpecificationWithLimitAndOffset(limit int, offset int) Transa
 	return &TransactionSpecificationWithLimitAndOffset{
 		limit:  limit,
 		offset: offset,
+	}
+}
+
+func NewTransactionSpecificationByReferenceIdAndStatus(id int, status string) TransactionSpecification {
+	return &TransactionSpecificationByReferenceIdAndStatus{
+		id:     id,
+		status: status,
 	}
 }
 
@@ -403,6 +433,43 @@ func (ts *PGPoolTransactionStore) refreshTransactionForeigns(ctx interface{}, tr
 	}
 
 	return nil
+}
+
+func (ts *PGPoolTransactionStore) TypeTurnOver(ctx interface{}, specification TransactionSpecification) (error, *map[string]TurnOverResult) {
+	result := make(map[string]TurnOverResult)
+
+	rows, err := ts.pool.Query(
+		context.Background(), fmt.Sprintf(
+			`select
+				type,
+				count(id),
+				sum(amount)
+			from transactions %s group by type`,
+			specification.ToSqlClauses(),
+		),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to query type turn over rows: %v", err), &result
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var opType string
+		var turnOverResult TurnOverResult
+
+		if err := rows.Scan(&opType, &turnOverResult.Cnt, &turnOverResult.Sum); err != nil {
+			return fmt.Errorf("failed to get type turn over row: %v", err), &result
+		}
+
+		result[opType] = turnOverResult
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed to iterating over rows of type turn over: %v", err), &result
+	}
+
+	return nil, &result
 }
 
 func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification TransactionSpecification) (error, int, []*Transaction) {
