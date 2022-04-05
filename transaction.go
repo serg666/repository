@@ -104,6 +104,10 @@ func (tx *Transaction) IsPreAuth() bool {
 	return *tx.Type == PREAUTH
 }
 
+func (tx *Transaction) IsAuth() bool {
+	return *tx.Type == AUTH
+}
+
 func NewTransaction(
 	txType string,
 	orderId *string,
