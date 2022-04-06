@@ -10,6 +10,21 @@ import (
 
 type AdditionalData map[string]interface{}
 
+type BrowserInfo struct {
+	UserAgent     string `json:"user_agent" binding:"required"`
+	AcceptHeader  string `json:"accept_header" binding:"required"`
+	ColorDepth    *int   `json:"color_depth" binding:"required"`
+	IP            string `json:"ip" binding:"required"`
+	Language      string `json:"language" binding:"required"`
+	ScreenHeight  *int   `json:"screen_height" binding:"required"`
+	ScreenWidth   *int   `json:"screen_width" binding:"required"`
+	ScreenPrint   string `json:"screen_print" binding:"required"`
+	TZ            *int   `json:"tz" binding:"required"`
+	TimeZone      string `json:"time_zone" binding:"required"`
+	JavaEnabled   *bool  `json:"java_enabled" binding:"required"`
+	DeviceChannel string `json:"device_channel" binding:"required"`
+}
+
 type ThreeDSecure10 struct {
 	AcsUrl *string
 	PaReq  *string
@@ -50,6 +65,7 @@ type Transaction struct {
 	ThreeDSMethodUrl  *ThreeDSMethodUrl
 	AdditionalData    *AdditionalData
 	Customer          *string
+	BrowserInfo       *BrowserInfo
 }
 
 func (tx *Transaction) New() {
@@ -118,6 +134,7 @@ func NewTransaction(
 	amount *uint,
 	customer *string,
 	reference *Transaction,
+	browserInfo *BrowserInfo,
 ) *Transaction {
 	transaction := &Transaction{
 		Type: &txType,
@@ -132,6 +149,7 @@ func NewTransaction(
 		OrderId: orderId,
 		Reference: reference,
 		Customer: customer,
+		BrowserInfo: browserInfo,
 	}
 
 	transaction.New()
@@ -264,8 +282,9 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 			threedsmethodurl,
 			error_message,
 			additional_data,
-			customer
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) returning id, created`,
+			customer,
+			browser_info
+		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) returning id, created`,
 		transaction.Type,
 		transaction.Status,
 		profileId,
@@ -288,6 +307,7 @@ func (ts *PGPoolTransactionStore) Add(ctx interface{}, transaction *Transaction)
 		transaction.ErrorMessage,
 		transaction.AdditionalData,
 		transaction.Customer,
+		transaction.BrowserInfo,
 	).Scan(&transaction.Id, &transaction.Created)
 }
 
@@ -522,7 +542,8 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 				threedsmethodurl,
 				error_message,
 				additional_data,
-				customer
+				customer,
+				browser_info
 			from transactions %s`,
 			specification.ToSqlClauses(),
 		),
@@ -567,6 +588,7 @@ func (ts *PGPoolTransactionStore) Query(ctx interface{}, specification Transacti
 			&transaction.ErrorMessage,
 			&transaction.AdditionalData,
 			&transaction.Customer,
+			&transaction.BrowserInfo,
 		); err != nil {
 			return fmt.Errorf("failed to get transaction row: %v", err), c, l
 		}
@@ -669,7 +691,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			threedsmethodurl=COALESCE($20, threedsmethodurl),
 			error_message=COALESCE($21, error_message),
 			additional_data=COALESCE($22, additional_data),
-			customer=COALESCE($23, customer)
+			customer=COALESCE($23, customer),
+			browser_info=COALESCE($24, browser_info)
 		where
 			id=$1
 		returning
@@ -694,7 +717,8 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 			threedsmethodurl,
 			error_message,
 			additional_data,
-			customer`,
+			customer,
+			browser_info`,
 		transaction.Id,
 		transaction.Type,
 		transaction.Status,
@@ -718,6 +742,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		transaction.ErrorMessage,
 		transaction.AdditionalData,
 		transaction.Customer,
+		transaction.BrowserInfo,
 	).Scan(
 		&transaction.Type,
 		&transaction.Status,
@@ -741,6 +766,7 @@ func (ts *PGPoolTransactionStore) Update(ctx interface{}, transaction *Transacti
 		&transaction.ErrorMessage,
 		&transaction.AdditionalData,
 		&transaction.Customer,
+		&transaction.BrowserInfo,
 	)
 
 	if profileId != nil {
