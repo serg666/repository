@@ -124,6 +124,10 @@ func (tx *Transaction) IsAuth() bool {
 	return *tx.Type == AUTH
 }
 
+func (tx *Transaction) IsRebill() bool {
+	return *tx.Type == REBILL
+}
+
 func NewTransaction(
 	txType string,
 	orderId *string,
