@@ -128,6 +128,10 @@ func (tx *Transaction) IsRebill() bool {
 	return *tx.Type == REBILL
 }
 
+func (tx *Transaction) IsConfirm() bool {
+	return *tx.Type == CONFIRMAUTH
+}
+
 func NewTransaction(
 	txType string,
 	orderId *string,
