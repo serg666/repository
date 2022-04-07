@@ -31,8 +31,8 @@ type ThreeDSecure10 struct {
 }
 
 type ThreeDSecure20 struct {
-	AcsUrl             *string
-	Creq               *string
+	AcsUrl *string
+	Creq   *string
 }
 
 type ThreeDSMethodUrl struct {
