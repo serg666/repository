@@ -369,8 +369,8 @@ func (cs *HttpClientCardStore) Query(ctx interface{}, specification CardSpecific
 		return fmt.Errorf("can not make query card request: %v", err), c, l
 	}
 
-	if list, ok := (*jsonResp)["list"]; ok {
-		if rows, ok := list.([]interface{}); ok {
+	if data, ok := (*jsonResp)["data"]; ok {
+		if rows, ok := data.([]interface{}); ok {
 			for _, row := range rows {
 				jsonbody, err := json.Marshal(&row)
 				if err != nil {
