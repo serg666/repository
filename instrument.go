@@ -8,8 +8,8 @@ import (
 )
 
 type Instrument struct {
-	Id  *int
-	Key *string
+	Id  *int    `json:"id"`
+	Key *string `json:"key"`
 }
 
 type InstrumentSpecification interface {

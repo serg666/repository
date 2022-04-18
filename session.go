@@ -9,9 +9,9 @@ import (
 type SessionData map[string]interface{}
 
 type Session struct {
-	Id   *int
-	Key  *string
-	Data *SessionData
+	Id   *int         `json:"id"`
+	Key  *string      `json:"key"`
+	Data *SessionData `json:"data"`
 }
 
 type SessionSpecification interface {

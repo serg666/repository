@@ -10,12 +10,12 @@ import (
 type RouterSettings map[string]interface{}
 
 type Route struct {
-	Id         *int
-	Profile    *Profile
-	Instrument *Instrument
-	Account    *Account
-	Router     *Router
-	Settings   *RouterSettings
+	Id         *int            `json:"id"`
+	Profile    *Profile        `json:"profile"`
+	Instrument *Instrument     `json:"instrument"`
+	Account    *Account        `json:"account"`
+	Router     *Router         `json:"router"`
+	Settings   *RouterSettings `json:"settings"`
 }
 
 type RouteSpecification interface {

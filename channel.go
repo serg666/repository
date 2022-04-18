@@ -8,9 +8,9 @@ import (
 )
 
 type Channel struct {
-	Id     *int
-	TypeId *int
-	Key    *string
+	Id     *int    `json:"id"`
+	TypeId *int    `json:"type_id"`
+	Key    *string `json:"key"`
 }
 
 func (c *Channel) String() string {

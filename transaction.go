@@ -26,46 +26,46 @@ type BrowserInfo struct {
 }
 
 type ThreeDSecure10 struct {
-	AcsUrl *string
-	PaReq  *string
+	AcsUrl *string `json:"acs_url"`
+	PaReq  *string `json:"pareq"`
 }
 
 type ThreeDSecure20 struct {
-	AcsUrl *string
-	Creq   *string
+	AcsUrl *string `json:"acs_url"`
+	Creq   *string `json:"creq"`
 }
 
 type ThreeDSMethodUrl struct {
-	MethodUrl         *string
-	ThreeDSMethodData *string
+	MethodUrl         *string `json:"method_url"`
+	ThreeDSMethodData *string `json:"method_data"`
 }
 
 type Transaction struct {
-	Id                *int
-	Created           *time.Time
-	Type              *string
-	Status            *string
-	Profile           *Profile
-	Account           *Account
-	Instrument        *Instrument
-	InstrumentId      *int
-	Amount            *uint
-	Currency          *Currency
-	AmountConverted   *uint
-	CurrencyConverted *Currency
-	AuthCode          *string
-	RRN               *string
-	ResponseCode      *string
-	ErrorMessage      *string
-	RemoteId          *string
-	OrderId           *string
-	Reference         *Transaction
-	ThreeDSecure10    *ThreeDSecure10
-	ThreeDSecure20    *ThreeDSecure20
-	ThreeDSMethodUrl  *ThreeDSMethodUrl
-	AdditionalData    *AdditionalData
-	Customer          *string
-	BrowserInfo       *BrowserInfo
+	Id                *int              `json:"id"`
+	Created           *time.Time        `json:"created"`
+	Type              *string           `json:"type"`
+	Status            *string           `json:"status"`
+	Profile           *Profile          `json:"profile"`
+	Account           *Account          `json:"account"`
+	Instrument        *Instrument       `json:"instrument"`
+	InstrumentId      *int              `json:"instrument_id"`
+	Amount            *uint             `json:"amount"`
+	Currency          *Currency         `json:"currency"`
+	AmountConverted   *uint             `json:"amount_converted"`
+	CurrencyConverted *Currency         `json:"currency_converted"`
+	AuthCode          *string           `json:"auth_code"`
+	RRN               *string           `json:"rrn"`
+	ResponseCode      *string           `json:"response_code"`
+	ErrorMessage      *string           `json:"error_message"`
+	RemoteId          *string           `json:"remote_id"`
+	OrderId           *string           `json:"order_id"`
+	Reference         *Transaction      `json:"reference"`
+	ThreeDSecure10    *ThreeDSecure10   `json:"threedsecure10"`
+	ThreeDSecure20    *ThreeDSecure20   `json:"threedsecure20"`
+	ThreeDSMethodUrl  *ThreeDSMethodUrl `json:"threedsmethodurl"`
+	AdditionalData    *AdditionalData   `json:"additional_data"`
+	Customer          *string           `json:"customer"`
+	BrowserInfo       *BrowserInfo      `json:"browser_info"`
 }
 
 func (tx *Transaction) New() {

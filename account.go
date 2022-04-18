@@ -10,19 +10,19 @@ import (
 type AccountSettings map[string]interface{}
 
 type Account struct {
-	Id                        *int
-	IsEnabled                 *bool
-	IsTest                    *bool
-	RebillEnabled             *bool
-	RefundEnabled             *bool
-	ReversalEnabled           *bool
-	PartialConfirmEnabled     *bool
-	PartialReversalEnabled    *bool
-	PartialRefundEnabled      *bool
-	CurrencyConversionEnabled *bool
-	Currency                  *Currency
-	Channel                   *Channel
-	Settings                  *AccountSettings
+	Id                        *int             `json:"id"`
+	IsEnabled                 *bool            `json:"is_enabled"`
+	IsTest                    *bool            `json:"is_test"`
+	RebillEnabled             *bool            `json:"rebill_enabled"`
+	RefundEnabled             *bool            `json:"refund_enabled"`
+	ReversalEnabled           *bool            `json:"reversal_enabled"`
+	PartialConfirmEnabled     *bool            `json:"partial_confirm_enabled"`
+	PartialReversalEnabled    *bool            `json:"partial_reversal_enabled"`
+	PartialRefundEnabled      *bool            `json:"partial_refund_enabled"`
+	CurrencyConversionEnabled *bool            `json:"currency_conversion_enabled"`
+	Currency                  *Currency        `json:"currency"`
+	Channel                   *Channel         `json:"channel"`
+	Settings                  *AccountSettings `json:"settings"`
 }
 
 func (a *Account) String() string {

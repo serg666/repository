@@ -10,11 +10,11 @@ import (
 )
 
 type Currency struct {
-	Id          *int
-	NumericCode *int
-	Name        *string
-	CharCode    *string
-	Exponent    *int
+	Id          *int    `json:"id"`
+	NumericCode *int    `json:"numeric_code"`
+	Name        *string `json:"name"`
+	CharCode    *string `json:"char_code"`
+	Exponent    *int    `json:"exponent"`
 }
 
 type CurrencySpecification interface {

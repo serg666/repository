@@ -10,10 +10,10 @@ import (
 )
 
 type Profile struct {
-	Id          *int
-	Key         *string
-	Description *string
-	Currency    *Currency
+	Id          *int      `json:"id"`
+	Key         *string   `json:"key"`
+	Description *string   `json:"description"`
+	Currency    *Currency `json:"currency"`
 }
 
 type ProfileSpecification interface {

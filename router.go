@@ -8,8 +8,8 @@ import (
 )
 
 type Router struct {
-	Id  *int
-	Key *string
+	Id  *int    `json:"id"`
+	Key *string `json:"key"`
 }
 
 type RouterSpecification interface {
