@@ -3,15 +3,26 @@ package repository
 import (
 	"fmt"
 	"sync"
+	"time"
 	"github.com/wk8/go-ordered-map"
+)
+
+const (
+	expireSeconds = 300
 )
 
 type SessionData map[string]interface{}
 
 type Session struct {
-	Id   *int         `json:"id"`
-	Key  *string      `json:"key"`
-	Data *SessionData `json:"data"`
+	Id       *int         `json:"id"`
+	Key      *string      `json:"key"`
+	Data     *SessionData `json:"data"`
+	ExpireAt *time.Time   `json:"expire_at"`
+}
+
+func (s Session) hasExpired() bool {
+	sessionTime := *s.ExpireAt
+	return sessionTime.Before(time.Now())
 }
 
 type SessionSpecification interface {
@@ -63,7 +74,9 @@ func (ss *OrderedMapSessionStore) Add(ctx interface{}, session *Session) error {
 	defer ss.Unlock()
 
 	id := ss.nextId
+	expireAt := time.Now().Add(expireSeconds * time.Second)
 	session.Id = &id
+	session.ExpireAt = &expireAt
 	ss.sessions.Set(*session.Id, *session)
 	ss.nextId++
 
@@ -82,6 +95,7 @@ func (ss *OrderedMapSessionStore) Delete(ctx interface{}, session *Session) (err
 	deleted := value.(Session)
 	session.Key = deleted.Key
 	session.Data = deleted.Data
+	session.ExpireAt = deleted.ExpireAt
 
 	return nil, false
 }
@@ -109,6 +123,12 @@ func (ss *OrderedMapSessionStore) Update(ctx interface{}, session *Session) (err
 		session.Data = old.Data
 	}
 
+	if session.ExpireAt != nil {
+		old.ExpireAt = session.ExpireAt
+	} else {
+		session.ExpireAt = old.ExpireAt
+	}
+
 	ss.sessions.Set(*old.Id, old)
 
 	return nil, false
@@ -123,7 +143,7 @@ func (ss *OrderedMapSessionStore) Query(ctx interface{}, specification SessionSp
 
 	for el := ss.sessions.Oldest(); el != nil; el = el.Next() {
 		session := el.Value.(Session)
-		if specification.Specified(&session, c) {
+		if specification.Specified(&session, c) && !session.hasExpired() {
 			l = append(l, &session)
 		}
 		c++
