@@ -357,6 +357,22 @@ func (cs *HttpClientCardStore) Delete(ctx interface{}, card *Card) (error, bool)
 	return nil, false
 }
 
+func (cs *HttpClientCardStore) appendToList (l *[]*Card, data *map[string]interface{}) error {
+	jsonbody, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("can not marshal query card list json response: %v", err)
+	}
+
+	var card Card
+	d := json.NewDecoder(bytes.NewReader(jsonbody))
+	if err := d.Decode(&card); err != nil {
+		return fmt.Errorf("can not decode query card list json body response: %v", err)
+	}
+	*l = append(*l, &card)
+
+	return nil
+}
+
 func (cs *HttpClientCardStore) Query(ctx interface{}, specification CardSpecification) (error, int, []*Card) {
 	var l []*Card
 	var c int = 0
@@ -372,23 +388,21 @@ func (cs *HttpClientCardStore) Query(ctx interface{}, specification CardSpecific
 	if data, ok := (*jsonResp)["data"]; ok {
 		if rows, ok := data.([]interface{}); ok {
 			for _, row := range rows {
-				jsonbody, err := json.Marshal(&row)
-				if err != nil {
-					return fmt.Errorf("can not marshal query card list json response: %v", err), c, l
+				if r, ok := row.(map[string]interface{}); ok {
+					if err := cs.appendToList(&l, &r); err != nil {
+						return fmt.Errorf("can not append to list: %v", err), c, l
+					}
+				} else {
+					return errors.New("card query response list has wrong type"), c, l
 				}
-
-				var card Card
-				d := json.NewDecoder(bytes.NewReader(jsonbody))
-				if err := d.Decode(&card); err != nil {
-					return fmt.Errorf("can not decode query card list json body response: %v", err), c, l
-				}
-				l = append(l, &card)
 			}
 		} else {
 			return errors.New("card query response list has wrong type"), c, l
 		}
 	} else {
-		return errors.New("card query response has no list"), c, l
+		if err := cs.appendToList(&l, jsonResp); err != nil {
+			return fmt.Errorf("can not append to list: %v", err), c, l
+		}
 	}
 
 	return nil, c, l
